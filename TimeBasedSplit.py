@@ -131,7 +131,6 @@ class TimeBasedSplit:
         if not np.issubdtype(df[self.date_col].dtypes, np.datetime64):
             raise ValueError(f"{self.date_col} must be a date column")
 
-    # TODO: check this
     def _check_n_splits(self, df):
 
         max_date = df[self.date_col].max().to_pydatetime()
@@ -139,7 +138,7 @@ class TimeBasedSplit:
             self.end_offset
             + max(self.forecast_horizon)
             + self.gap
-            + (self.n_splits * self.step_length)
+            + ((self.n_splits-1) * self.step_length)
         )
         train_end_date = max_date - relativedelta(**{self.date_frequency: max_iter})
 
