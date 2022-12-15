@@ -11,14 +11,12 @@ class TimeBasedSplit:
         date_col,
         forecast_horizon=None,
         max_train_size=None,
-        gap=0,
         n_splits=5,
         end_offset=0,
         step_length=None,
     ):
         self.forecast_horizon = forecast_horizon
         self.max_train_size = max_train_size
-        self.gap = gap
         self.n_splits = n_splits
         self.date_frequency = date_frequency
         self.end_offset = end_offset
@@ -50,17 +48,6 @@ class TimeBasedSplit:
                     f"max_train_size must be positive, received {value} instead"
                 )
         self._max_train_size = value
-
-    @property
-    def gap(self):
-        return self._gap
-
-    @gap.setter
-    def gap(self, value):
-        if int(value) < 0:
-            raise ValueError(f"gap must be greater than zero, received {value} instead")
-        else:
-            self._gap = value
 
     @property
     def n_splits(self):
@@ -137,7 +124,6 @@ class TimeBasedSplit:
         max_iter = (
             self.end_offset
             + max(self.forecast_horizon)
-            + self.gap
             + ((self.n_splits-1) * self.step_length)
         )
         train_end_date = max_date - relativedelta(**{self.date_frequency: max_iter})
@@ -145,13 +131,12 @@ class TimeBasedSplit:
         if df[df[self.date_col] <= train_end_date].empty:
             raise ValueError(
                 f"Too many splits={self.n_splits} "
-                f"with forecast horizon={self.forecast_horizon}, "
-                f"step_length={self.step_length} and gap={self.gap} "
+                f"with forecast horizon={self.forecast_horizon}, and "
+                f"step_length={self.step_length} "
                 f"for the date sequence."
             )
 
     def split(self, df):
-        gap = self.gap
         max_train_size = self.max_train_size
         date_frequency = self.date_frequency
         forecast_horizon = self.forecast_horizon
@@ -172,14 +157,12 @@ class TimeBasedSplit:
             train_end = max_date - relativedelta(
                 **{
                     date_frequency: i * step_length
-                    + gap
                     + end_offset
                     + max(forecast_horizon)
                 }
             )
-            test_start = train_end + relativedelta(**{date_frequency: gap})
             test_dates = [
-                test_start + fh * relativedelta(**{date_frequency: 1})
+                train_end + fh * relativedelta(**{date_frequency: 1})
                 for fh in forecast_horizon
             ]
             test_condition = df[date_col].isin(test_dates)
